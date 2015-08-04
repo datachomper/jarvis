@@ -1,9 +1,9 @@
 from pocketsphinx.pocketsphinx import *
 from sphinxbase.sphinxbase import *
 import thread
-import pyaudio
-import wave
+import alsaaudio
 import time
+import curses
 
 buf = []
 
@@ -42,36 +42,36 @@ def decode(decoder, buf):
 	decoder.end_utt()
 	return decoder.hyp().hypstr
 
-def audio_callback(in_data, frame_count, time_info, status):
-	global buf
-	buf.append(in_data)
-	return (None, pyaudio.paContinue)
-
 def wait_for_key():
 	getch = _GetchUnix()
 	while not getch():
 		pass
 	return 0
 
-def get_audio(ad):
+def get_audio(stdscr):
+	#buf = bytearray()
+	buf = ''
 	print "Waiting for keypress"
 	wait_for_key()
 
-	stream = ad.open(format = pyaudio.paInt16,
-			channels = 1,
-			rate = 16000,
-			input=True,
-			output=False,
-			frames_per_buffer=1024,
-			stream_callback=audio_callback)
+    	rx = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NONBLOCK, 'sysdefault')
+	rx.setchannels(1)
+	rx.setrate(16000)
+	rx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+	rx.setperiodsize(160)
 
+	fp = open('/tmp/test.wav', 'wb')	
 	print "recording ..."
-	stream.start_stream()
-	wait_for_key()
-	stream.stop_stream()
-	stream.close()
-	ad.terminate()
+	stdscr.nodelay(1)
+	while (stdscr.getch() == -1):
+		size, data = rx.read()
+		if size:
+			#fp.write(data)
+			#buf.append(data)
+			buf += data
+			time.sleep(.001)
 	print "finished recording"
+	return buf
 
 def get_audio_file():
 	stream = file('/tmp/voice_test.wav', 'rb')
@@ -79,10 +79,13 @@ def get_audio_file():
 	buf = stream.read()
 	return buf
 
-if __name__ == '__main__':
+def main(stdscr):
 	decoder = decoder_init()
-	ad = pyaudio.PyAudio()
-	get_audio(ad)
-	print type(buf).__name__
-	print type(get_audio_file()).__name__
-	print 'Hypothesis: ', decode(decoder, buf)
+	buf = get_audio(stdscr)
+	stdscr.addstr(decode(decoder, buf))
+	stdscr.refresh()
+	wait_for_key()
+
+if __name__ == '__main__':
+	curses.wrapper(main)
+
