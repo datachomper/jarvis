@@ -69,6 +69,18 @@ def get_audio():
 	print "analyzing ..."
 	return buf
 
+def debug_voice_playback(buf):
+	# Setup alsa playback interface
+	tx = alsaaudio.PCM(alsaaudio.PCM_PLAYBACK, alsaaudio.PCM_NORMAL, 'sysdefault')
+	tx.setchannels(1)
+	tx.setrate(16000)
+	tx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+	tx.setperiodsize(341)
+
+	for i in range(0, len(buf)-CHUNK, CHUNK):
+		tx.write(buf[i:i+CHUNK])
+	tx.close()
+
 if __name__ == '__main__':
 	# Setup button 18 for Push-to-talk
 	GPIO.setmode(GPIO.BCM)
@@ -79,16 +91,5 @@ if __name__ == '__main__':
 
 	while True:
 		buf = get_audio()
-
-		## Setup alsa playback interface
-	    	#tx = alsaaudio.PCM(alsaaudio.PCM_PLAYBACK, alsaaudio.PCM_NORMAL, 'sysdefault')
-		#tx.setchannels(1)
-		#tx.setrate(16000)
-		#tx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-		#tx.setperiodsize(341)
-
-		#for i in range(0, len(buf)-CHUNK, CHUNK):
-		#	tx.write(buf[i:i+CHUNK])
-		#tx.close()
-	
+		#debug_voice_playback(buf)
 		print('Hypothesis', decode(decoder, buf))
