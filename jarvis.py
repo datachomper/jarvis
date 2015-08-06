@@ -64,26 +64,28 @@ if __name__ == '__main__':
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-	# Setup alsa recording interface for "default" sound card
-    	rx = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NONBLOCK, 'sysdefault')
-	rx.setchannels(1)
-	rx.setrate(16000)
-	rx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-	rx.setperiodsize(341)
-
-	# Setup alsa playback interface
-    	tx = alsaaudio.PCM(alsaaudio.PCM_PLAYBACK, alsaaudio.PCM_NORMAL, 'sysdefault')
-	tx.setchannels(1)
-	tx.setrate(16000)
-	tx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-	tx.setperiodsize(341)
-
 	# Setup pocketsphinx voice-to-text engine
 	decoder = decoder_init()
 
 	while True:
+		# Setup alsa recording interface for "default" sound card
+	    	rx = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NONBLOCK, 'sysdefault')
+		rx.setchannels(1)
+		rx.setrate(16000)
+		rx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+		rx.setperiodsize(341)
+	
+		# Setup alsa playback interface
+	    	tx = alsaaudio.PCM(alsaaudio.PCM_PLAYBACK, alsaaudio.PCM_NORMAL, 'sysdefault')
+		tx.setchannels(1)
+		tx.setrate(16000)
+		tx.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+		tx.setperiodsize(341)
+
 		buf = get_audio(rx)
 		for i in range(0, len(buf)-CHUNK, CHUNK):
 			tx.write(buf[i:i+CHUNK])
 			
 		print('Hypothesis', decode(decoder, buf))
+		rx.close()
+		tx.close()
