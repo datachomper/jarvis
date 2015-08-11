@@ -9,18 +9,9 @@
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
 #define INTERVAL 50
 #define STROBESPEED 250
-int timeout;
-int partymode;
-int strobe_state;
-int strobe_timeout;
 
 void setup()
 {
-	timeout = 0;
-	partymode = 0;
-	strobe_state = 0;
-	strobe_timeout = 0;
-
 	Serial.begin(9600);
 	pixels.begin();
 
@@ -31,6 +22,9 @@ void setup()
 }
 
 void strobe() {
+	static unsigned long strobe_timeout = 0;
+	static int strobe_state = 0;
+
 	if (millis() > strobe_timeout) {
 		for (int i = 0; i < 12; i++) {
 			if (strobe_state)
@@ -46,6 +40,8 @@ void strobe() {
 
 void loop()
 {
+	static unsigned long timeout = 0;
+	static int partymode = 0;
 
 	while (Serial.available() > 0) {
 		int cmd = Serial.parseInt();

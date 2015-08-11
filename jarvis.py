@@ -225,9 +225,11 @@ def action_tree(c):
 
 	elif (c.find('LIGHTS') != -1):
 		set_lights(c)
+		confirm()
 
 	elif (c.find('PARTY MODE') != -1):
-		send_cmd("5")
+		send_cmd("5 1\n")
+		confirm()
 
 	# Unknown Request
 	else:
