@@ -18,8 +18,8 @@ CHUNK = PERIOD * FRAME_SIZE
 
 def decoder_init():
 	hmdir = '/usr/local/share/pocketsphinx/model/en-us/en-us'
-	dictd = '/home/pi/sphinx_generated_dic/jarvis_v2.dic'
-	lmdir = '/home/pi/sphinx_generated_dic/jarvis_v2.lm'
+	dictd = '/home/pi/jarvis/sphinx_kb/jarvis_v3.dic'
+	lmdir = '/home/pi/jarvis/sphinx_kb/jarvis_v3.lm'
 
 	# Create a decoder with certain model
 	config = Decoder.default_config()
