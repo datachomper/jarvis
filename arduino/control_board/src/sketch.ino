@@ -3,13 +3,25 @@
 #define OPEN_FACEPLATE 1
 #define CLOSE_FACEPLATE 2
 #define LED_COLOR 3
+#define LED_BRIGHTNESS 4
+#define PARTY_MODE 5
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
+#define INTERVAL 50
+#define STROBESPEED 250
+int timeout;
+int partymode;
+int strobe_state;
+int strobe_timeout;
 
 void setup()
 {
+	timeout = 0;
+	partymode = 0;
+	strobe_state = 0;
+	strobe_timeout = 0;
+
 	Serial.begin(9600);
-	Serial.println("Control interface online");
 	pixels.begin();
 
 	for (int i = 0; i < 12; i++) {
@@ -18,8 +30,23 @@ void setup()
 	pixels.show();
 }
 
+void strobe() {
+	if (millis() > strobe_timeout) {
+		for (int i = 0; i < 12; i++) {
+			if (strobe_state)
+				pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+			else
+				pixels.setPixelColor(i, pixels.Color(255, 255, 255));
+		}	
+		pixels.show();
+		strobe_state = ~strobe_state;
+		strobe_timeout = millis() + STROBESPEED;
+	}
+}
+
 void loop()
 {
+
 	while (Serial.available() > 0) {
 		int cmd = Serial.parseInt();
 
@@ -37,7 +64,33 @@ void loop()
 			for (int i = 0; i < 12; i++) {
 				pixels.setPixelColor(i, pixels.Color(red, green, blue));
 			}
+
 			pixels.show();
+			partymode = 0;
+		} else if (cmd == LED_BRIGHTNESS){
+			int value = Serial.parseInt();
+			pixels.setBrightness(value);
+			pixels.show();
+		} else if (cmd == PARTY_MODE){
+			if (Serial.parseInt())
+				partymode = 1;
+			else
+				partymode = 0;
+
+			// Reset to 50% red color
+			if (!partymode) {
+				for (int i = 0; i < 12; i++) {
+					pixels.setPixelColor(i, pixels.Color(126, 0, 0));
+				}
+				pixels.show();
+			}
+		}
+	}
+
+	if (partymode) {
+		if (millis() > timeout) {
+			timeout = millis() + INTERVAL;
+			strobe();
 		}
 	}
 }

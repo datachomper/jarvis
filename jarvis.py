@@ -7,6 +7,7 @@ import time
 import RPi.GPIO as GPIO
 import random
 import wave
+import serial
 
 button_pressed = False
 
@@ -14,7 +15,6 @@ button_pressed = False
 PERIOD = 341
 FRAME_SIZE = 2
 CHUNK = PERIOD * FRAME_SIZE
-
 
 def decoder_init():
 	hmdir = '/usr/local/share/pocketsphinx/model/en-us/en-us'
@@ -127,14 +127,79 @@ def confirm():
 	play(random.choice(x))
 
 def say_time():
+	pm = False
 	clock = time.localtime()
 
-	rand = random.randint(1,2)
-	play("clock_time_" + rand)
-	play("num_" + clock.tm_hour)
-	play("num_" + clock.tm_min)
-	play("clock_oclock")
+	rand = random.randint(0,1)
+	play("clock_time_" + str(rand))
+
+	# Convert military to civilian time
+	if (clock.tm_hour > 12):
+		hour = clock.tm_hour - 12
+		pm = True
+	else:
+		hour = clock.tm_hour
+
+	play("num_" + str(hour))
+	if (clock.tm_min):
+		if (clock.tm_min < 10):
+			play("num_0" + str(clock.tm_min))
+		else:
+			play("num_" + str(clock.tm_min))
+
+		if pm:
+			play("clock_pm")
+		else:
+			play("clock_am")
+	else:
+		play("clock_oclock")
 	
+
+def send_cmd(c):
+	ser.write(c)
+
+def set_lights(c):
+	colormap = {	'RED': '3 255 0 0\n',
+			'ORANGE': '3 255 127 0\n',
+			'YELLOW': '3 255 255 0\n',
+			'GREEN': '3 0 255 0\n',
+			'BLUE': '3 0 0 255\n',
+			'INDIGO': '3 75 0 130\n',
+			'VIOLET': '3 143 0 255\n',
+			'WHITE': '3 255 255 255\n' }
+
+	if (c.find('ON') != -1):	
+		send_cmd("4 127\n")
+		send_cmd(colormap['RED'])
+
+	elif (c.find('OFF') != -1):	
+		send_cmd("3 0 0 0\n")		
+
+	elif (c.find('FULL') != -1) or (c.find('MAX') != -1):	
+		send_cmd("4 255\n")		
+	elif (c.find('THREE QUARTER') != -1):	
+		send_cmd("4 127\n")		
+	elif (c.find('HALF') != -1):	
+		send_cmd("4 64\n")		
+	elif (c.find('QUARTER') != -1):	
+		send_cmd("4 32\n")		
+
+	elif (c.find('RED') != -1):	
+		send_cmd(colormap['RED'])
+	elif (c.find('ORANGE') != -1):	
+		send_cmd(colormap['ORANGE'])
+	elif (c.find('YELLOW') != -1):	
+		send_cmd(colormap['YELLOW'])
+	elif (c.find('GREEN') != -1):	
+		send_cmd(colormap['GREEN'])
+	elif (c.find('BLUE') != -1):	
+		send_cmd(colormap['BLUE'])
+	elif (c.find('INDIGO') != -1):	
+		send_cmd(colormap['INDIGO'])
+	elif (c.find('VIOLET') != -1):	
+		send_cmd(colormap['VIOLET'])
+	elif (c.find('WHITE') != -1):	
+		send_cmd(colormap['WHITE'])
 
 def action_tree(c):
 	# Unknown Request
@@ -148,21 +213,30 @@ def action_tree(c):
 		play(random.choice(x))
 	
 	# Open faceplate
-	elif c.find('OPEN'):
+	elif (c.find('OPEN') != -1):
 		confirm()
 
 	# Close faceplate
-	elif c.find('CLOSE'):
+	elif (c.find('CLOSE') != -1):
 		confirm()
 
-	elif c.find('TIME'):
+	elif (c.find('TIME') != -1):
 		say_time()
+
+	elif (c.find('LIGHTS') != -1):
+		set_lights(c)
+
+	elif (c.find('PARTY MODE') != -1):
+		send_cmd("5")
 
 	# Unknown Request
 	else:
 		unknown()
 
 if __name__ == '__main__':
+	global ser
+	ser = serial.Serial('/dev/ttyUSB0', 9600)
+
 	random.seed(time.time())
 
 	# Setup button 18 for Push-to-talk
