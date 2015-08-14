@@ -8,7 +8,7 @@
 #define PARTY_MODE 5
 #define FACEPLATE_SERVO 6
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(16, 10, NEO_GRB + NEO_KHZ800);
 #define INTERVAL 50
 #define STROBESPEED 250
 
@@ -19,7 +19,7 @@ void setup()
 	Serial.begin(9600);
 	pixels.begin();
 
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < pixels.numPixels(); i++) {
 		pixels.setPixelColor(i, pixels.Color(1, 5, 5));
 	}
 	pixels.show();
@@ -31,7 +31,7 @@ void strobe() {
 	static int strobe_state = 0;
 
 	if (millis() > strobe_timeout) {
-		for (int i = 0; i < 12; i++) {
+		for (int i = 0; i < pixels.numPixels(); i++) {
 			if (strobe_state)
 				pixels.setPixelColor(i, pixels.Color(0, 0, 0));
 			else
@@ -54,6 +54,11 @@ void loop()
 		Serial.println(cmd);
 
 		if (cmd == OPEN_FACEPLATE) {
+			for (int i = 0; i < pixels.numPixels(); i++) {
+				pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+			}
+			pixels.show();
+
 			helm_servo.attach(9);
 			helm_servo.write(600);
 			delay(1000);
@@ -63,6 +68,10 @@ void loop()
 			helm_servo.write(2100);
 			delay(1000);
 			helm_servo.detach();
+			for (int i = 0; i < pixels.numPixels(); i++) {
+				pixels.setPixelColor(i, pixels.Color(126, 0, 0));
+			}
+			pixels.show();
 		} else if (cmd == LED_COLOR) {
 			int red = Serial.parseInt();
 			int green = Serial.parseInt();
@@ -72,7 +81,7 @@ void loop()
 			Serial.print(green, HEX);
 			Serial.println(blue, HEX);
 	
-			for (int i = 0; i < 12; i++) {
+			for (int i = 0; i < pixels.numPixels(); i++) {
 				pixels.setPixelColor(i, pixels.Color(red, green, blue));
 			}
 
@@ -90,7 +99,7 @@ void loop()
 
 			// Reset to 50% red color
 			if (!partymode) {
-				for (int i = 0; i < 12; i++) {
+				for (int i = 0; i < pixels.numPixels(); i++) {
 					pixels.setPixelColor(i, pixels.Color(126, 0, 0));
 				}
 				pixels.show();

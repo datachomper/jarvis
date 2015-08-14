@@ -214,10 +214,12 @@ def action_tree(c):
 	
 	# Open faceplate
 	elif (c.find('OPEN') != -1):
+		send_cmd("1\n");
 		confirm()
 
 	# Close faceplate
 	elif (c.find('CLOSE') != -1):
+		send_cmd("2\n");
 		confirm()
 
 	elif (c.find('TIME') != -1):
@@ -237,7 +239,7 @@ def action_tree(c):
 
 if __name__ == '__main__':
 	global ser
-	ser = serial.Serial('/dev/ttyUSB0', 9600)
+	ser = serial.Serial('/dev/ttyACM0', 9600)
 
 	random.seed(time.time())
 
