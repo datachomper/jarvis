@@ -1,14 +1,18 @@
 #include <Adafruit_NeoPixel.h>
+#include <Servo.h>
 
 #define OPEN_FACEPLATE 1
 #define CLOSE_FACEPLATE 2
 #define LED_COLOR 3
 #define LED_BRIGHTNESS 4
 #define PARTY_MODE 5
+#define FACEPLATE_SERVO 6
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
 #define INTERVAL 50
 #define STROBESPEED 250
+
+Servo helm_servo;
 
 void setup()
 {
@@ -19,6 +23,7 @@ void setup()
 		pixels.setPixelColor(i, pixels.Color(1, 5, 5));
 	}
 	pixels.show();
+
 }
 
 void strobe() {
@@ -45,10 +50,20 @@ void loop()
 
 	while (Serial.available() > 0) {
 		int cmd = Serial.parseInt();
+		Serial.print("cmd: ");
+		Serial.println(cmd);
 
 		if (cmd == OPEN_FACEPLATE) {
+			helm_servo.attach(9);
+			helm_servo.write(600);
+			delay(1000);
+			helm_servo.detach();
 		} else if (cmd == CLOSE_FACEPLATE) {
-		} else if (cmd == LED_COLOR){
+			helm_servo.attach(9);
+			helm_servo.write(2100);
+			delay(1000);
+			helm_servo.detach();
+		} else if (cmd == LED_COLOR) {
 			int red = Serial.parseInt();
 			int green = Serial.parseInt();
 			int blue = Serial.parseInt();
@@ -63,11 +78,11 @@ void loop()
 
 			pixels.show();
 			partymode = 0;
-		} else if (cmd == LED_BRIGHTNESS){
+		} else if (cmd == LED_BRIGHTNESS) {
 			int value = Serial.parseInt();
 			pixels.setBrightness(value);
 			pixels.show();
-		} else if (cmd == PARTY_MODE){
+		} else if (cmd == PARTY_MODE) {
 			if (Serial.parseInt())
 				partymode = 1;
 			else
@@ -80,6 +95,12 @@ void loop()
 				}
 				pixels.show();
 			}
+		} else if (cmd == FACEPLATE_SERVO) {
+			int pwm = Serial.parseInt();
+			if ((pwm > 0) && (pwm < 2500))
+				helm_servo.write(pwm);
+			Serial.print("moved to ");
+			Serial.println(pwm);
 		}
 	}
 
