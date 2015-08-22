@@ -146,11 +146,13 @@ void setup()
 
 /* Currently being called at 1Khz */
 ISR(TIMER2_COMPA_vect) {
-	static int counter = 0;
+	static int servocounter = 0;
+	static int excounter = 0;
+	static int litpixel = 0;
 
 	/* Update @ 1Khz/10 = 100Hz */
-	if (counter > 10) {
-		counter = 0;
+	if (servocounter > 10) {
+		servocounter = 0;
 
 		for (int i = 0; i < 4; i++) {
 			struct serv *s = &servos[i];
@@ -176,7 +178,30 @@ ISR(TIMER2_COMPA_vect) {
 			}
 		}
 	} else {
-		counter++;
+		servocounter++;
+	}
+
+	/* exwife light chase */
+	if (excounter > 100) {
+		Adafruit_NeoPixel *p = &pix[EX];	
+		if (!exwife_is_closed()) {
+			excounter = 0;
+			for (int i = 0; i < 12; i++) {
+				if (i == litpixel)
+					p->setPixelColor(i, p->Color(125, 0, 0));		
+				else
+					p->setPixelColor(i, p->Color(0, 0, 0));		
+			}
+			p->show();
+			litpixel++;
+			if (litpixel > 11)
+				litpixel = 0;
+		} else {
+			p->clear();
+			p->show();
+		}
+	} else {
+		excounter++;
 	}
 }
 
