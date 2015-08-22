@@ -10,18 +10,65 @@
 #define ROOF_SERVO 7
 #define CRADLE_SERVO 8
 #define FLAP_SERVO 9
+#define EXWIFE_STATE 10
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(13, 10, NEO_GRB + NEO_KHZ800);
 #define INTERVAL 50
 #define STROBESPEED 250
 
-Servo helm;
-Servo roof;
-Servo cradle;
-Servo flap;
+#define NUM_SERVOS 4
+#define HELM 0
+#define ROOF 1
+#define CRADLE 2
+#define FLAP 3
+
+#define ROOF_OPEN 1600
+#define ROOF_CLOSE 1000
+#define CRADLE_OPEN 700
+#define CRADLE_CLOSE 1500
+#define FLAP_OPEN 2000
+#define FLAP_CLOSE 1500
+
+struct serv {
+	Servo servo;
+	int pin;
+	int cur = 1500;
+	int end = 1500;
+	int speed = 10;
+} servos[4];
 
 void setup()
 {
+	servos[HELM].pin = 9;
+	servos[ROOF].pin = 11;
+	servos[CRADLE].pin = 12;
+	servos[FLAP].pin = 13;
+
+	/* Manually setup the servos to safe starting positions */
+	/* Attach all servos */
+	for (int i = 0; i < NUM_SERVOS; i++) {
+		servos[i].servo.attach(servos[i].pin);
+	}
+
+	servos[HELM].servo.writeMicroseconds(1500);
+	servos[ROOF].servo.writeMicroseconds(ROOF_OPEN);
+	delay(500);
+	servos[CRADLE].servo.writeMicroseconds(CRADLE_CLOSE);
+	delay(500);
+	servos[FLAP].servo.writeMicroseconds(FLAP_CLOSE);
+	servos[ROOF].servo.writeMicroseconds(ROOF_CLOSE);
+	delay(500);
+
+	/* Record final servo positions */
+	servos[ROOF].cur = servos[ROOF].end = ROOF_CLOSE;
+	servos[CRADLE].cur = servos[CRADLE].end = CRADLE_CLOSE;
+	servos[FLAP].cur = servos[FLAP].end = FLAP_CLOSE;
+
+	/* Detach all servos */
+	for (int i = 0; i < NUM_SERVOS; i++) {
+		servos[i].servo.detach();
+	}
+
 	Serial.begin(9600);
 	pixels.begin();
 
@@ -30,19 +77,58 @@ void setup()
 	}
 	pixels.show();
 
-	/* This seems to prevent strange crosstalk to servos that aren't
- 	 * initialized yet */
-	helm.attach(9);
-	helm.detach();
+	cli();
+	TCCR2A = 0;
+	TCCR2B = 0;
+	TCNT2  = 0;
+	// set compare match register for 1khz increments
+	// 16MHz(clock)/64(prescaler)/249(compare reg)) = 1Khz
+	OCR2A = 249;
 
-	roof.attach(11);
-	roof.detach();
+	// turn on CTC mode
+	TCCR2A |= (1 << WGM21);
+	// Set CS21 bit for 64 prescaler
+	TCCR2B |= (1 << CS22);   
+	// enable timer compare interrupt
+	TIMSK2 |= (1 << OCIE2A);
 
-	cradle.attach(12);
-	cradle.detach();
+	sei();
+}
 
-	flap.attach(13);
-	flap.detach();
+/* Currently being called at 1Khz */
+ISR(TIMER2_COMPA_vect) {
+	static int counter = 0;
+
+	/* Update @ 1Khz/10 = 100Hz */
+	if (counter > 10) {
+		counter = 0;
+
+		for (int i = 0; i < 4; i++) {
+			struct serv *s = &servos[i];
+
+			if (s->cur != s->end) {
+				if (!s->servo.attached())
+					s->servo.attach(s->pin);
+
+				if (s->end > s->cur) {
+					s->cur += s->speed;
+					if (s->cur > s->end)
+						s->cur = s->end;
+				} else {
+					s->cur -= s->speed;
+					if (s->cur < s->end)
+						s->cur = s->end;
+				}
+
+				s->servo.writeMicroseconds(s->cur);
+			} else if (s->servo.attached()) {
+				/* Detach servo once it reaches final position */
+				s->servo.detach();
+			}
+		}
+	} else {
+		counter++;
+	}
 }
 
 void strobe() {
@@ -78,17 +164,9 @@ void loop()
 			}
 			pixels.show();
 
-			helm.attach(9);
-			//TODO: should this be .writeMicroseconds()?
-			helm.write(600);
-			delay(1000);
-			helm.detach();
+			servos[HELM].end = 600;
 		} else if (cmd == CLOSE_FACEPLATE) {
-			helm.attach(9);
-			//TODO: should this be .writeMicroseconds()?
-			helm.write(2100);
-			delay(1000);
-			helm.detach();
+			servos[HELM].end = 1000;
 			for (int i = 0; i < pixels.numPixels(); i++) {
 				pixels.setPixelColor(i, pixels.Color(126, 0, 0));
 			}
@@ -128,39 +206,37 @@ void loop()
 		} else if (cmd == FACEPLATE_SERVO) {
 			int pwm = Serial.parseInt();
 			if ((pwm > 0) && (pwm < 2500))
-				helm.attach(9);
-				helm.write(pwm);
-				Serial.print("faceplate moved to ");
-				Serial.println(pwm);
-				delay(1000);
-				helm.detach();
+				servos[HELM].end = pwm;
 		} else if (cmd == ROOF_SERVO) {
 			int pwm = Serial.parseInt();
 			if ((pwm > 0) && (pwm < 2500))
-				roof.attach(11);
-				roof.writeMicroseconds(pwm);
-				Serial.print("roof moved to ");
-				Serial.println(pwm);
-				delay(1000);
-				roof.detach();
+				servos[ROOF].end = pwm;
 		} else if (cmd == CRADLE_SERVO) {
 			int pwm = Serial.parseInt();
 			if ((pwm > 0) && (pwm < 2500))
-				cradle.attach(12);
-				cradle.writeMicroseconds(pwm);
-				Serial.print("cradle moved to ");
-				Serial.println(pwm);
-				delay(1000);
-				cradle.detach();
+				servos[CRADLE].end = pwm;
 		} else if (cmd == FLAP_SERVO) {
 			int pwm = Serial.parseInt();
 			if ((pwm > 0) && (pwm < 2500))
-				flap.attach(13);
-				flap.writeMicroseconds(pwm);
-				Serial.print("flap moved to ");
-				Serial.println(pwm);
-				delay(1000);
-				flap.detach();
+				servos[FLAP].end = pwm;
+		} else if (cmd == FLAP_SERVO) {
+			int state = Serial.parseInt();
+	
+			if (state == 0) {
+				Serial.println("closing exwife");
+				servos[FLAP].end = FLAP_OPEN;
+				delay(500);
+				servos[ROOF].end = ROOF_OPEN;
+				delay(500);
+				servos[CRADLE].end = CRADLE_OPEN;
+			} else if (state == 1){
+				Serial.println("opening exwife");
+				servos[CRADLE].end = CRADLE_CLOSE;
+				delay(500);
+				servos[ROOF].end = ROOF_CLOSE;
+				delay(500);
+				servos[FLAP].end = FLAP_CLOSE;
+			}
 		}
 	}
 
