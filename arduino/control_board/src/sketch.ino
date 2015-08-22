@@ -219,7 +219,7 @@ void loop()
 			int pwm = Serial.parseInt();
 			if ((pwm > 0) && (pwm < 2500))
 				servos[FLAP].end = pwm;
-		} else if (cmd == FLAP_SERVO) {
+		} else if (cmd == EXWIFE_STATE) {
 			int state = Serial.parseInt();
 	
 			if (state == 0) {
