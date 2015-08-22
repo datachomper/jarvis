@@ -12,12 +12,15 @@
 #define FLAP_SERVO 9
 #define EXWIFE_STATE 10
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(13, 10, NEO_GRB + NEO_KHZ800);
+#define NUM_PIX 2
+#define HELM 0
+#define EX 1
+Adafruit_NeoPixel pix[2];
 #define INTERVAL 50
 #define STROBESPEED 250
 
 #define NUM_SERVOS 4
-#define HELM 0
+// HELM=0 defined by pixels above
 #define ROOF 1
 #define CRADLE 2
 #define FLAP 3
@@ -36,6 +39,54 @@ struct serv {
 	int end = 1500;
 	int speed = 10;
 } servos[4];
+
+int exwife_is_closed() {
+	if (servos[ROOF].cur == ROOF_CLOSE)
+		return 1;
+	else
+		return 0;
+}
+
+void init_pix() {
+	pix[HELM] = Adafruit_NeoPixel(12, 9, NEO_GRB + NEO_KHZ800);
+	pix[EX] = Adafruit_NeoPixel(13, 10, NEO_GRB + NEO_KHZ800);
+
+	for (int i = 0; i < NUM_PIX; i++) {
+		pix[i].begin();
+	}
+}
+
+void set_pixel_color(int a, int r, int g, int b) {
+	Adafruit_NeoPixel *p = &pix[a];
+
+	for (int j = 0; j < p->numPixels(); j++) {
+		p->setPixelColor(j, p->Color(r, g, b));
+	}
+
+	if ((a == EX) && exwife_is_closed())
+		p->clear();
+	else
+		p->show();
+}
+
+void set_all_pixel_bright(int val) {
+	for (int i = 0; i < NUM_PIX; i++) {
+		Adafruit_NeoPixel *p = &pix[i];
+		p->setBrightness(val);
+		p->show();
+	}
+}
+
+void set_all_pixel_color(int r, int g, int b) {
+	for (int i = 0; i < NUM_PIX; i++) {
+		Adafruit_NeoPixel *p = &pix[i];
+
+		for (int j = 0; j < p->numPixels(); j++) {
+			p->setPixelColor(j, p->Color(r, g, b));
+		}
+		p->show();
+	}
+}
 
 void setup()
 {
@@ -70,12 +121,10 @@ void setup()
 	}
 
 	Serial.begin(9600);
-	pixels.begin();
 
-	for (int i = 0; i < pixels.numPixels(); i++) {
-		pixels.setPixelColor(i, pixels.Color(1, 5, 5));
-	}
-	pixels.show();
+	/* Set all pixels to default color */
+	init_pix();
+	set_all_pixel_color(1, 5, 5);
 
 	cli();
 	TCCR2A = 0;
@@ -136,13 +185,11 @@ void strobe() {
 	static int strobe_state = 0;
 
 	if (millis() > strobe_timeout) {
-		for (int i = 0; i < pixels.numPixels(); i++) {
-			if (strobe_state)
-				pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-			else
-				pixels.setPixelColor(i, pixels.Color(255, 255, 255));
-		}	
-		pixels.show();
+		if (strobe_state)
+			set_all_pixel_color(0, 0, 0);
+		else
+			set_all_pixel_color(255, 255, 255);
+
 		strobe_state = ~strobe_state;
 		strobe_timeout = millis() + STROBESPEED;
 	}
@@ -159,18 +206,11 @@ void loop()
 		Serial.println(cmd);
 
 		if (cmd == OPEN_FACEPLATE) {
-			for (int i = 0; i < pixels.numPixels(); i++) {
-				pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-			}
-			pixels.show();
-
+			set_pixel_color(HELM, 0, 0, 0);
 			servos[HELM].end = 600;
 		} else if (cmd == CLOSE_FACEPLATE) {
 			servos[HELM].end = 1000;
-			for (int i = 0; i < pixels.numPixels(); i++) {
-				pixels.setPixelColor(i, pixels.Color(126, 0, 0));
-			}
-			pixels.show();
+			set_pixel_color(HELM, 126, 0, 0);
 		} else if (cmd == LED_COLOR) {
 			int red = Serial.parseInt();
 			int green = Serial.parseInt();
@@ -180,16 +220,11 @@ void loop()
 			Serial.print(green, HEX);
 			Serial.println(blue, HEX);
 	
-			for (int i = 0; i < pixels.numPixels(); i++) {
-				pixels.setPixelColor(i, pixels.Color(red, green, blue));
-			}
-
-			pixels.show();
+			set_all_pixel_color(red, green, blue);	
 			partymode = 0;
 		} else if (cmd == LED_BRIGHTNESS) {
 			int value = Serial.parseInt();
-			pixels.setBrightness(value);
-			pixels.show();
+			set_all_pixel_bright(value);
 		} else if (cmd == PARTY_MODE) {
 			if (Serial.parseInt())
 				partymode = 1;
@@ -198,10 +233,7 @@ void loop()
 
 			// Reset to 50% red color
 			if (!partymode) {
-				for (int i = 0; i < pixels.numPixels(); i++) {
-					pixels.setPixelColor(i, pixels.Color(126, 0, 0));
-				}
-				pixels.show();
+				set_all_pixel_color(126, 0, 0);	
 			}
 		} else if (cmd == FACEPLATE_SERVO) {
 			int pwm = Serial.parseInt();
@@ -222,20 +254,23 @@ void loop()
 		} else if (cmd == EXWIFE_STATE) {
 			int state = Serial.parseInt();
 	
-			if (state == 0) {
-				Serial.println("closing exwife");
+			if (state == 1) {
+				Serial.println("open exwife");
+				set_pixel_color(EX, 125, 0, 0);
 				servos[FLAP].end = FLAP_OPEN;
 				delay(500);
 				servos[ROOF].end = ROOF_OPEN;
 				delay(500);
 				servos[CRADLE].end = CRADLE_OPEN;
-			} else if (state == 1){
-				Serial.println("opening exwife");
+				set_pixel_color(EX, 125, 0, 0);
+			} else if (state == 0){
+				Serial.println("close exwife");
 				servos[CRADLE].end = CRADLE_CLOSE;
 				delay(500);
 				servos[ROOF].end = ROOF_CLOSE;
 				delay(500);
 				servos[FLAP].end = FLAP_CLOSE;
+				set_pixel_color(EX, 0, 0, 0);
 			}
 		}
 	}
