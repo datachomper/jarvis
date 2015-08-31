@@ -1,0 +1,47 @@
+jarvis
+
+open lid
+close lid
+helm
+helmet
+faceplate
+down
+up
+
+bring the lights to max power
+full
+half
+quarter
+three quarter
+take
+turn the lights off
+turn the lights on
+
+set lights to red
+orange
+yellow
+green
+blue
+indigo
+violet
+white
+
+activate party mode
+engage
+
+what time is it
+whats the time
+
+battle mode
+relax
+
+bogey spotted
+enemy
+
+volume
+mute
+reboot
+power off
+on
+disable
+enable
