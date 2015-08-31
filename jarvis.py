@@ -209,32 +209,46 @@ def action_tree(c):
 	if c == '':
 		unknown()
 
-	# Respond to just "jarvis"
+	# Respond to JUST "jarvis"
 	elif c == 'JARVIS':
 		x = ['title_u_s', 'listening_on_2', 'listening_on_3', 'listening_on_4',
 			'listening_on_5', 'listening_on_6', 'listening_on_7']
 		play(random.choice(x))
 	
 	# Open faceplate
-	elif (c.find('OPEN') != -1):
-		send_cmd("1\n");
+	elif 'OPEN' in c:
+		send_cmd("1\n")
 		confirm()
 
 	# Close faceplate
-	elif (c.find('CLOSE') != -1):
-		send_cmd("2\n");
+	elif 'CLOSE' in c:
+		send_cmd("2\n")
 		confirm()
 
-	elif (c.find('TIME') != -1):
+	elif 'TIME' in c:
 		say_time()
 
-	elif (c.find('LIGHTS') != -1):
+	elif 'LIGHTS' in c:
 		set_lights(c)
 		confirm()
 
-	elif (c.find('PARTY MODE') != -1):
+	elif 'PARTY' in c:
 		send_cmd("5 1\n")
 		confirm()
+
+	elif 'EXWIFE' in c:
+		if any(word in c for word in ['OPEN', 'ACTIVATE']):
+			send_cmd("10 1\n")
+		else:
+			send_cmd("10 0\n")
+
+	elif 'MUTE' in c:
+		# This could hit the mute pin but it's acting strange
+		set_amp_gain(0)
+
+	elif 'UNMUTE' in c:
+		# This could hit the mute pin but it's acting strange
+		set_amp_gain(63)
 
 	# Unknown Request
 	else:
@@ -272,6 +286,9 @@ if __name__ == '__main__':
 	decoder = decoder_init()
 
 	setup_amp()
+
+	# Arduino code bug, clear out first command
+	send_cmd(" ")
 
 	while True:
 		buf = get_audio()
