@@ -8,6 +8,9 @@ import RPi.GPIO as GPIO
 import random
 import wave
 import serial
+import smbus
+
+bus = smbus.SMBus(1)
 
 button_pressed = False
 
@@ -237,18 +240,38 @@ def action_tree(c):
 	else:
 		unknown()
 
+def setup_amp():
+	#Set gain to something
+	set_amp_gain(63)
+	#bring mute high
+	#GPIO.setup(17, GPIO.OUT, pull_up_down=GPIO.PUD_UP)
+	#bring shutdown high
+	#GPIO.setup(27, GPIO.OUT, pull_up_down=GPIO.PUD_UP)
+
+def set_amp_gain(gain):
+	if (gain < 0):
+		gain = 0
+	elif (gain > 63):
+		gain = 63
+	try:
+		bus.write_byte(0x4B, gain)
+	except Exception as ex:
+		print("Exception [%s]" % (ex))
+
 if __name__ == '__main__':
 	global ser
 	ser = serial.Serial('/dev/ttyACM0', 9600)
 
 	random.seed(time.time())
 
-	# Setup button 18 for Push-to-talk
+	# Setup gpio 18 (pin 12) for Push-to-talk
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 	# Setup pocketsphinx voice-to-text engine
 	decoder = decoder_init()
+
+	setup_amp()
 
 	while True:
 		buf = get_audio()

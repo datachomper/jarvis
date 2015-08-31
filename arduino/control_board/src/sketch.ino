@@ -12,10 +12,13 @@
 #define FLAP_SERVO 9
 #define EXWIFE_STATE 10
 
-#define NUM_PIX 2
+#define NUM_PIX 5
 #define HELM 0
 #define EX 1
-Adafruit_NeoPixel pix[2];
+#define UNI 2
+#define LREP 3
+#define RREP 4
+Adafruit_NeoPixel pix[NUM_PIX];
 #define INTERVAL 50
 #define STROBESPEED 250
 
@@ -25,12 +28,14 @@ Adafruit_NeoPixel pix[2];
 #define CRADLE 2
 #define FLAP 3
 
+#define HELM_OPEN 600
+#define HELM_CLOSED 2000
 #define ROOF_OPEN 1600
 #define ROOF_CLOSE 1000
 #define CRADLE_OPEN 700
 #define CRADLE_CLOSE 1500
-#define FLAP_OPEN 2000
-#define FLAP_CLOSE 1500
+#define FLAP_OPEN 2300
+#define FLAP_CLOSE 1200
 
 struct serv {
 	Servo servo;
@@ -47,9 +52,19 @@ int exwife_is_closed() {
 		return 0;
 }
 
+int exwife_is_open() {
+	if (servos[ROOF].cur == ROOF_OPEN)
+		return 1;
+	else
+		return 0;
+}
+
 void init_pix() {
-	pix[HELM] = Adafruit_NeoPixel(12, 9, NEO_GRB + NEO_KHZ800);
 	pix[EX] = Adafruit_NeoPixel(13, 10, NEO_GRB + NEO_KHZ800);
+	pix[HELM] = Adafruit_NeoPixel(16, 8, NEO_GRB + NEO_KHZ800);
+	pix[UNI] = Adafruit_NeoPixel(24, 7, NEO_GRB + NEO_KHZ800);
+	pix[LREP] = Adafruit_NeoPixel(12, 6, NEO_GRB + NEO_KHZ800);
+	pix[RREP] = Adafruit_NeoPixel(12, 5, NEO_GRB + NEO_KHZ800);
 
 	for (int i = 0; i < NUM_PIX; i++) {
 		pix[i].begin();
@@ -94,6 +109,7 @@ void setup()
 	servos[ROOF].pin = 11;
 	servos[CRADLE].pin = 12;
 	servos[FLAP].pin = 13;
+	servos[FLAP].speed = 50;
 
 	/* Manually setup the servos to safe starting positions */
 	/* Attach all servos */
@@ -101,7 +117,7 @@ void setup()
 		servos[i].servo.attach(servos[i].pin);
 	}
 
-	servos[HELM].servo.writeMicroseconds(1500);
+	servos[HELM].servo.writeMicroseconds(HELM_OPEN);
 	servos[ROOF].servo.writeMicroseconds(ROOF_OPEN);
 	delay(500);
 	servos[CRADLE].servo.writeMicroseconds(CRADLE_CLOSE);
@@ -148,7 +164,7 @@ void setup()
 ISR(TIMER2_COMPA_vect) {
 	static int servocounter = 0;
 	static int excounter = 0;
-	static int litpixel = 0;
+	static char litpixel[12] = {1,0,0,0,0,0,1,0,0,0,0,0};
 
 	/* Update @ 1Khz/10 = 100Hz */
 	if (servocounter > 10) {
@@ -183,19 +199,31 @@ ISR(TIMER2_COMPA_vect) {
 
 	/* exwife light chase */
 	if (excounter > 100) {
-		Adafruit_NeoPixel *p = &pix[EX];	
+		char tmp[12] = {0};
+		Adafruit_NeoPixel *p = &pix[EX];
 		if (!exwife_is_closed()) {
 			excounter = 0;
 			for (int i = 0; i < 12; i++) {
-				if (i == litpixel)
+				if (litpixel[i])
 					p->setPixelColor(i, p->Color(125, 0, 0));		
 				else
 					p->setPixelColor(i, p->Color(0, 0, 0));		
 			}
 			p->show();
-			litpixel++;
-			if (litpixel > 11)
-				litpixel = 0;
+
+			for (int i = 0; i < 12; i++) {
+				if (litpixel[i]) {
+					if (i == 11)
+						tmp[0] = 1;
+					else
+						tmp[i+1] = 1;
+					tmp[i] = 0;
+				}
+			}
+
+			for (int i = 0; i < 12; i++) {
+				litpixel[i] = tmp[i];
+			}
 		} else {
 			p->clear();
 			p->show();
@@ -232,9 +260,9 @@ void loop()
 
 		if (cmd == OPEN_FACEPLATE) {
 			set_pixel_color(HELM, 0, 0, 0);
-			servos[HELM].end = 600;
+			servos[HELM].end = HELM_OPEN;
 		} else if (cmd == CLOSE_FACEPLATE) {
-			servos[HELM].end = 1000;
+			servos[HELM].end = HELM_CLOSED;
 			set_pixel_color(HELM, 126, 0, 0);
 		} else if (cmd == LED_COLOR) {
 			int red = Serial.parseInt();
@@ -283,7 +311,7 @@ void loop()
 				Serial.println("open exwife");
 				set_pixel_color(EX, 125, 0, 0);
 				servos[FLAP].end = FLAP_OPEN;
-				delay(500);
+				delay(200);
 				servos[ROOF].end = ROOF_OPEN;
 				delay(500);
 				servos[CRADLE].end = CRADLE_OPEN;
@@ -293,7 +321,7 @@ void loop()
 				servos[CRADLE].end = CRADLE_CLOSE;
 				delay(500);
 				servos[ROOF].end = ROOF_CLOSE;
-				delay(500);
+				delay(300);
 				servos[FLAP].end = FLAP_CLOSE;
 				set_pixel_color(EX, 0, 0, 0);
 			}
