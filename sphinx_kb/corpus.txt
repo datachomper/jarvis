@@ -1,7 +1,7 @@
 jarvis
 
 open lid
-close lid
+close
 helm
 helmet
 faceplate
@@ -16,6 +16,13 @@ three quarter
 take
 turn the lights off
 turn the lights on
+default
+
+right repulsor
+left
+hand
+unibeam
+exwife
 
 set lights to red
 orange
@@ -25,6 +32,7 @@ blue
 indigo
 violet
 white
+flashlight
 
 activate party mode
 engage
@@ -32,11 +40,11 @@ engage
 what time is it
 whats the time
 
-battle mode
-relax
-
 bogey spotted
 enemy
+battle mode
+relax
+stand down
 
 volume
 mute
@@ -45,3 +53,32 @@ power off
 on
 disable
 enable
+
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+eleven
+twelve
+thirteen
+fourteen
+fifteen
+sixteen
+seventeen
+eightteen
+nineteen
+twenty
+thirty
+forty
+fifty
+sixty
+seventy
+eighty
+ninety
+hundred

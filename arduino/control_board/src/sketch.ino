@@ -21,6 +21,7 @@
 Adafruit_NeoPixel pix[NUM_PIX];
 #define INTERVAL 50
 #define STROBESPEED 250
+uint32_t global_color;
 
 #define NUM_SERVOS 4
 // HELM=0 defined by pixels above
@@ -71,11 +72,28 @@ void init_pix() {
 	}
 }
 
-void set_pixel_color(int a, int r, int g, int b) {
+void color_wipe(uint32_t c) {
+	for (int i = 0; i < NUM_PIX; i++) {
+		Adafruit_NeoPixel *p = &pix[i];
+
+		// Skip exwife pixels if it's closed
+		if ((i == EX) && exwife_is_closed())
+			continue;
+
+		for (int j = 0; j < p->numPixels(); j++) {
+			p->setPixelColor(j, c);
+			p->show();
+			// 40ms is for 77 pixel changes over 3 seconds
+			delay(40);
+		}
+	}
+}
+
+void set_pixel_color(int a, uint32_t c) {
 	Adafruit_NeoPixel *p = &pix[a];
 
 	for (int j = 0; j < p->numPixels(); j++) {
-		p->setPixelColor(j, p->Color(r, g, b));
+		p->setPixelColor(j, c);
 	}
 
 	if ((a == EX) && exwife_is_closed())
@@ -92,12 +110,16 @@ void set_all_pixel_bright(int val) {
 	}
 }
 
-void set_all_pixel_color(int r, int g, int b) {
+void set_all_pixel_color(uint32_t c) {
 	for (int i = 0; i < NUM_PIX; i++) {
 		Adafruit_NeoPixel *p = &pix[i];
 
+		// Skip exwife pixels if it's closed
+		if ((i == EX) && exwife_is_closed())
+			continue;
+
 		for (int j = 0; j < p->numPixels(); j++) {
-			p->setPixelColor(j, p->Color(r, g, b));
+			p->setPixelColor(j, c);
 		}
 		p->show();
 	}
@@ -140,7 +162,8 @@ void setup()
 
 	/* Set all pixels to default color */
 	init_pix();
-	set_all_pixel_color(1, 5, 5);
+	global_color = Adafruit_NeoPixel::Color(127, 0, 0);
+	color_wipe(global_color);
 
 	cli();
 	TCCR2A = 0;
@@ -205,9 +228,9 @@ ISR(TIMER2_COMPA_vect) {
 			excounter = 0;
 			for (int i = 0; i < 12; i++) {
 				if (litpixel[i])
-					p->setPixelColor(i, p->Color(125, 0, 0));		
+					p->setPixelColor(i, global_color);		
 				else
-					p->setPixelColor(i, p->Color(0, 0, 0));		
+					p->setPixelColor(i, 0);		
 			}
 			p->show();
 
@@ -239,9 +262,9 @@ void strobe() {
 
 	if (millis() > strobe_timeout) {
 		if (strobe_state)
-			set_all_pixel_color(0, 0, 0);
+			set_all_pixel_color(0);
 		else
-			set_all_pixel_color(255, 255, 255);
+			set_all_pixel_color(global_color);
 
 		strobe_state = ~strobe_state;
 		strobe_timeout = millis() + STROBESPEED;
@@ -259,21 +282,18 @@ void loop()
 		Serial.println(cmd);
 
 		if (cmd == OPEN_FACEPLATE) {
-			set_pixel_color(HELM, 0, 0, 0);
+			set_pixel_color(HELM, 0);
 			servos[HELM].end = HELM_OPEN;
 		} else if (cmd == CLOSE_FACEPLATE) {
 			servos[HELM].end = HELM_CLOSED;
-			set_pixel_color(HELM, 126, 0, 0);
+			set_pixel_color(HELM, global_color);
 		} else if (cmd == LED_COLOR) {
-			int red = Serial.parseInt();
-			int green = Serial.parseInt();
-			int blue = Serial.parseInt();
+			int r = Serial.parseInt();
+			int g = Serial.parseInt();
+			int b = Serial.parseInt();
 
-			Serial.print(red, HEX);
-			Serial.print(green, HEX);
-			Serial.println(blue, HEX);
-	
-			set_all_pixel_color(red, green, blue);	
+			global_color = Adafruit_NeoPixel::Color(r, g, b);
+			color_wipe(global_color);
 			partymode = 0;
 		} else if (cmd == LED_BRIGHTNESS) {
 			int value = Serial.parseInt();
@@ -284,9 +304,9 @@ void loop()
 			else
 				partymode = 0;
 
-			// Reset to 50% red color
+			// Reset to previous color
 			if (!partymode) {
-				set_all_pixel_color(126, 0, 0);	
+				color_wipe(global_color);
 			}
 		} else if (cmd == FACEPLATE_SERVO) {
 			int pwm = Serial.parseInt();
@@ -309,13 +329,11 @@ void loop()
 	
 			if (state == 1) {
 				Serial.println("open exwife");
-				set_pixel_color(EX, 125, 0, 0);
 				servos[FLAP].end = FLAP_OPEN;
 				delay(200);
 				servos[ROOF].end = ROOF_OPEN;
 				delay(500);
 				servos[CRADLE].end = CRADLE_OPEN;
-				set_pixel_color(EX, 125, 0, 0);
 			} else if (state == 0){
 				Serial.println("close exwife");
 				servos[CRADLE].end = CRADLE_CLOSE;
@@ -323,7 +341,6 @@ void loop()
 				servos[ROOF].end = ROOF_CLOSE;
 				delay(300);
 				servos[FLAP].end = FLAP_CLOSE;
-				set_pixel_color(EX, 0, 0, 0);
 			}
 		}
 	}
