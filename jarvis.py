@@ -250,6 +250,34 @@ def action_tree(c):
 		# This could hit the mute pin but it's acting strange
 		set_amp_gain(63)
 
+	elif 'HACK' in c:
+		play('accessed')
+	
+	elif 'DELETED PICTURES AND VIDEOS' in c:
+		play('bd_deleted_scenes')
+		play('bd_feature_0')
+
+	elif 'CHARGE' in c:
+		play('battery_charging_1')
+		#TODO put charge up sound here instead of sleep
+		sleep(3)
+		play('battery_charged')
+	
+	elif 'SELF DESTRUCT' in c:
+		play('activated')
+
+	elif 'CAMERA' in c:
+		play('camera_on')
+
+	elif 'LATE' in c:
+		play('clock_reminder_alert_1')
+
+	elif 'HELP' in c:
+		play('instructions')
+
+	elif all(word in c for word in ['SELF DESTRUCT', 'THEIR']):
+		play('self_destruct_1')
+
 	# Unknown Request
 	else:
 		unknown()
