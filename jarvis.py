@@ -130,12 +130,13 @@ def confirm():
 		'confirm_10', 'activated']
 	play(random.choice(x))
 
-def say_time():
+def say_time(short=0):
 	pm = False
 	clock = time.localtime()
 
-	rand = random.randint(0,1)
-	play("clock_time_" + str(rand))
+	if not short:
+		rand = random.randint(0,1)
+		play("clock_time_" + str(rand))
 
 	# Convert military to civilian time
 	if (clock.tm_hour > 12):
@@ -373,7 +374,7 @@ if __name__ == '__main__':
 
 	# Jarvis coming online audio
 	play('intro_a')
-	say_time()
+	say_time(short=1)
 
 	while True:
 		buf = get_audio()
