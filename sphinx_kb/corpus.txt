@@ -25,6 +25,7 @@ unibeam
 exwife
 
 set lights to red
+color
 orange
 yellow
 green

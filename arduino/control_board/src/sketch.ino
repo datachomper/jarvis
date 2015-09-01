@@ -63,9 +63,9 @@ int exwife_is_open() {
 void init_pix() {
 	pix[EX] = Adafruit_NeoPixel(13, 10, NEO_GRB + NEO_KHZ800);
 	pix[HELM] = Adafruit_NeoPixel(16, 8, NEO_GRB + NEO_KHZ800);
-	pix[UNI] = Adafruit_NeoPixel(24, 7, NEO_GRB + NEO_KHZ800);
+	pix[UNI] = Adafruit_NeoPixel(24, 5, NEO_GRB + NEO_KHZ800);
 	pix[LREP] = Adafruit_NeoPixel(12, 6, NEO_GRB + NEO_KHZ800);
-	pix[RREP] = Adafruit_NeoPixel(12, 5, NEO_GRB + NEO_KHZ800);
+	pix[RREP] = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
 
 	for (int i = 0; i < NUM_PIX; i++) {
 		pix[i].begin();
@@ -76,16 +76,25 @@ void color_wipe(uint32_t c) {
 	for (int i = 0; i < NUM_PIX; i++) {
 		Adafruit_NeoPixel *p = &pix[i];
 
+		#if 0
 		// Skip exwife pixels if it's closed
 		if ((i == EX) && exwife_is_closed())
 			continue;
+
+		p->clear();
+		p->show();
 
 		for (int j = 0; j < p->numPixels(); j++) {
 			p->setPixelColor(j, c);
 			p->show();
 			// 40ms is for 77 pixel changes over 3 seconds
-			delay(40);
+			delay(50);
 		}
+		#endif
+
+		// Forget the wipe animation for now, it's buggy
+		set_pixel_color(i, c);
+		set_pixel_color(i, c);
 	}
 }
 
