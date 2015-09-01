@@ -1,5 +1,7 @@
 jarvis
 
+thanks
+
 open lid
 close
 helm
@@ -8,24 +10,16 @@ faceplate
 down
 up
 
-bring the lights to max power
-full
-half
-quarter
-three quarter
-take
+set the lights to percent brightness
 turn the lights off
 turn the lights on
 default
 
-right repulsor
-left
-hand
 unibeam
 exwife
 
 set lights to red
-color
+colors
 orange
 yellow
 green
@@ -39,7 +33,6 @@ activate party mode
 engage
 
 what time is it
-whats the time
 
 bogey spotted
 enemy
@@ -47,33 +40,30 @@ battle mode
 relax
 stand down
 
+hack into this persons phone records
+include deleted pictures and videos
+charge the unibeam
+initiate self destruct mode
+turn their camera on
+are we late
+will this make us late
+can I stop and take a photo
+do we have time for a photo
+can you help this person with their camera
+initiate self destruct on their phone
+
+hot
 volume
 mute
+unmute
 reboot
 power off
+shutdown
 on
 disable
 enable
 
-one
-two
-three
-four
-five
-six
-seven
-eight
-nine
-ten
-eleven
-twelve
-thirteen
-fourteen
-fifteen
-sixteen
-seventeen
-eightteen
-nineteen
+ten percent
 twenty
 thirty
 forty
@@ -82,4 +72,4 @@ sixty
 seventy
 eighty
 ninety
-hundred
+one hundred

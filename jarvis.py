@@ -9,6 +9,7 @@ import random
 import wave
 import serial
 import smbus
+import os
 
 bus = smbus.SMBus(1)
 
@@ -171,38 +172,57 @@ def set_lights(c):
 			'VIOLET': '3 143 0 255\n',
 			'WHITE': '3 255 255 255\n' }
 
-	if (c.find('ON') != -1):	
+	if any(word in c for word in ['ON', 'DEFAULT']):
 		send_cmd("4 127\n")
 		send_cmd(colormap['RED'])
-
-	elif (c.find('OFF') != -1):	
+	elif 'OFF' in c:
 		send_cmd("3 0 0 0\n")		
 
-	elif (c.find('FULL') != -1) or (c.find('MAX') != -1):	
-		send_cmd("4 255\n")		
-	elif (c.find('THREE QUARTER') != -1):	
-		send_cmd("4 127\n")		
-	elif (c.find('HALF') != -1):	
-		send_cmd("4 64\n")		
-	elif (c.find('QUARTER') != -1):	
-		send_cmd("4 32\n")		
-
-	elif (c.find('RED') != -1):	
+	elif 'RED' in c:
 		send_cmd(colormap['RED'])
-	elif (c.find('ORANGE') != -1):	
+	elif 'ORANGE' in c:
 		send_cmd(colormap['ORANGE'])
-	elif (c.find('YELLOW') != -1):	
+	elif 'YELLOW' in c:
 		send_cmd(colormap['YELLOW'])
-	elif (c.find('GREEN') != -1):	
+	elif 'GREEN' in c:
 		send_cmd(colormap['GREEN'])
-	elif (c.find('BLUE') != -1):	
+	elif 'BLUE' in c:
 		send_cmd(colormap['BLUE'])
-	elif (c.find('INDIGO') != -1):	
+	elif 'INDIGO' in c:
 		send_cmd(colormap['INDIGO'])
-	elif (c.find('VIOLET') != -1):	
+	elif 'VIOLET' in c:
 		send_cmd(colormap['VIOLET'])
-	elif (c.find('WHITE') != -1):	
+	elif 'WHITE' in c:
 		send_cmd(colormap['WHITE'])
+
+	elif 'BRIGHTNESS' in c:
+		val = map(wordtoi(c), 0, 100, 0, 255)
+		send_cmd("4 " + val + "\n")
+
+
+def wordtoi(c):
+	if 'ZERO' in c:
+		return 0
+	elif 'TEN' in c:
+		return 10
+	elif 'TWENTY' in c:
+		return 20
+	elif 'THIRTY' in c:
+		return 30
+	elif 'FORTY' in c:
+		return 40
+	elif 'FIFTY' in c:
+		return 50
+	elif 'SIXTY' in c:
+		return 60
+	elif 'SEVENTY' in c:
+		return 70
+	elif 'EIGHTY' in c:
+		return 80
+	elif 'NINETY' in c:
+		return 90
+	elif 'ONE HUNDRED' in c:
+		return 100
 
 def action_tree(c):
 	# Unknown Request
@@ -216,19 +236,23 @@ def action_tree(c):
 		play(random.choice(x))
 	
 	# Open faceplate
-	elif 'OPEN' in c:
+	elif any(word in c for word in ['OPEN', 'UP']):
 		send_cmd("1\n")
 		confirm()
 
 	# Close faceplate
-	elif 'CLOSE' in c:
+	elif any(word in c for word in ['CLOSE', 'DOWN']):
 		send_cmd("2\n")
 		confirm()
 
+	# What time is it
 	elif 'TIME' in c:
 		say_time()
 
-	elif 'LIGHTS' in c:
+	# Set lights to 'ROYGBIV'
+	# Set colors ...
+	# Set lights to 30 percent brightness
+	elif any(word in c for word in ['LIGHTS', 'COLORS']):
 		set_lights(c)
 		confirm()
 
@@ -241,10 +265,19 @@ def action_tree(c):
 			send_cmd("10 1\n")
 		else:
 			send_cmd("10 0\n")
+		confirm()
+
+	elif any(word in c for word in ['BOGEY', 'ENEMY', 'BATTLE']):
+		send_cmd("10 1\n")
+		play('clock_alarm_snooze_1')
+
+	elif any(word in c for word in ['STAND DOWN', 'RELAX']):
+		send_cmd("10 0\n")
 
 	elif 'MUTE' in c:
 		# This could hit the mute pin but it's acting strange
 		set_amp_gain(0)
+		confirm()
 
 	elif 'UNMUTE' in c:
 		# This could hit the mute pin but it's acting strange
@@ -266,17 +299,37 @@ def action_tree(c):
 	elif 'SELF DESTRUCT' in c:
 		play('activated')
 
+	elif all(word in c for word in ['SELF DESTRUCT', 'THEIR']):
+		play('self_destruct_1')
+
 	elif 'CAMERA' in c:
 		play('camera_on')
 
-	elif 'LATE' in c:
+	elif any(word in c for word in ['LATE', 'PHOTO']):
+		#TODO: alert_0 also works here
 		play('clock_reminder_alert_1')
 
 	elif 'HELP' in c:
 		play('instructions')
 
-	elif all(word in c for word in ['SELF DESTRUCT', 'THEIR']):
-		play('self_destruct_1')
+	elif 'THANKS' in c:
+		play('clock_late_1')
+		# confirm_0, confirm_10, confirm_9
+
+	elif any(word in c for word in ['SHUTDOWN', 'POWER OFF']):
+		play('sleep_2')
+		os.system('shutdown now -h')
+
+	elif 'REBOOT' in c:
+		play('sleep_2')
+		os.system('reboot')
+
+	elif 'HOT' in c:
+		play('weather_hot_1')
+
+	elif 'VOLUME' in c:
+		vol = wordtoi(c)
+		set_volume(map(vol, 0, 100, 0, 63))
 
 	# Unknown Request
 	else:
@@ -317,6 +370,10 @@ if __name__ == '__main__':
 
 	# Arduino code bug, clear out first command
 	send_cmd(" ")
+
+	# Jarvis coming online audio
+	play('intro_a')
+	say_time()
 
 	while True:
 		buf = get_audio()
