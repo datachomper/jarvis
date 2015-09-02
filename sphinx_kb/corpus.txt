@@ -4,9 +4,6 @@ thanks
 
 open lid
 close
-helm
-helmet
-faceplate
 down
 up
 
@@ -16,7 +13,6 @@ turn the lights on
 default
 
 unibeam
-ex wife
 missile
 
 set lights to red
@@ -31,7 +27,6 @@ white
 flashlight
 
 activate party mode
-engage
 
 what time is it
 
@@ -39,7 +34,6 @@ bogey spotted
 enemy
 battle mode
 relax
-stand down
 
 hack into this persons phone records
 include deleted pictures and videos
@@ -53,17 +47,17 @@ do we have time for a photo
 can you help this person with their camera
 initiate self destruct on their phone
 
-how hot is it
 is it hot
 volume
 mute
 unmute
 reboot
 power off
-shutdown
-on
-disable
-enable
+
+play
+stop
+iron man
+game of thrones
 
 ten percent
 twenty
