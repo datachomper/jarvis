@@ -14,11 +14,18 @@ import os
 bus = smbus.SMBus(1)
 
 button_pressed = False
+volume = 30
 
 # For some reason the period size is stuck on this number
 PERIOD = 341
 FRAME_SIZE = 2
 CHUNK = PERIOD * FRAME_SIZE
+
+def scale(value, leftmin, leftmax, rightmin, rightmax):
+	leftspan = leftmax - leftmin
+	rightspan = rightmax - rightmin
+	valuescaled = float(value - leftmin) / float(leftspan)
+	return int(rightmin + (valuescaled * rightspan))
 
 def decoder_init():
 	hmdir = '/usr/local/share/pocketsphinx/model/en-us/en-us'
@@ -180,25 +187,38 @@ def set_lights(c):
 		send_cmd("3 0 0 0\n")		
 
 	elif 'RED' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['RED'])
 	elif 'ORANGE' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['ORANGE'])
 	elif 'YELLOW' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['YELLOW'])
 	elif 'GREEN' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['GREEN'])
 	elif 'BLUE' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['BLUE'])
 	elif 'INDIGO' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['INDIGO'])
 	elif 'VIOLET' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['VIOLET'])
 	elif 'WHITE' in c:
+		send_cmd("4 127\n")
 		send_cmd(colormap['WHITE'])
 
 	elif 'BRIGHTNESS' in c:
-		val = map(wordtoi(c), 0, 100, 0, 255)
-		send_cmd("4 " + val + "\n")
+		val = wordtoi(c)
+		if ((val >= 0) and (val <= 100)):
+			val = scale(val, 0, 100, 0, 255)
+			send_cmd('4 %s\n'%{val})
+			confirm()
+		else:
+			unknown()
 
 
 def wordtoi(c):
@@ -224,6 +244,8 @@ def wordtoi(c):
 		return 90
 	elif 'ONE HUNDRED' in c:
 		return 100
+	else:
+		return -1
 
 def action_tree(c):
 	# Unknown Request
@@ -253,7 +275,7 @@ def action_tree(c):
 	# Set lights to 'ROYGBIV'
 	# Set colors ...
 	# Set lights to 30 percent brightness
-	elif any(word in c for word in ['LIGHTS', 'COLORS']):
+	elif any(word in c for word in ['LIGHTS', 'COLORS', 'BRIGHTNESS']):
 		set_lights(c)
 		confirm()
 
@@ -275,14 +297,15 @@ def action_tree(c):
 	elif any(word in c for word in ['STAND DOWN', 'RELAX']):
 		send_cmd("10 0\n")
 
-	elif 'MUTE' in c:
-		# This could hit the mute pin but it's acting strange
-		set_amp_gain(0)
-		confirm()
-
 	elif 'UNMUTE' in c:
 		# This could hit the mute pin but it's acting strange
-		set_amp_gain(63)
+		GPIO.output(27, True)
+		confirm()
+
+	elif 'MUTE' in c:
+		# This could hit the mute pin but it's acting strange
+		GPIO.output(27, False)
+		confirm()
 
 	elif 'HACK' in c:
 		play('accessed')
@@ -294,7 +317,7 @@ def action_tree(c):
 	elif 'CHARGE' in c:
 		play('battery_charging_1')
 		#TODO put charge up sound here instead of sleep
-		sleep(3)
+		time.sleep(3)
 		play('battery_charged')
 	
 	elif 'SELF DESTRUCT' in c:
@@ -319,10 +342,12 @@ def action_tree(c):
 
 	elif any(word in c for word in ['SHUTDOWN', 'POWER OFF']):
 		play('sleep_2')
+		set_amp_gain(0)
 		os.system('shutdown now -h')
 
 	elif 'REBOOT' in c:
 		play('sleep_2')
+		set_amp_gain(0)
 		os.system('reboot')
 
 	elif 'HOT' in c:
@@ -330,7 +355,12 @@ def action_tree(c):
 
 	elif 'VOLUME' in c:
 		vol = wordtoi(c)
-		set_volume(map(vol, 0, 100, 0, 63))
+		if ((vol >= 0) and (vol <= 100)):
+			volume = vol
+			set_amp_gain(scale(volume, 0, 100, 0, 63))
+			confirm()
+		else:
+			unknown()
 
 	# Unknown Request
 	else:
@@ -338,11 +368,13 @@ def action_tree(c):
 
 def setup_amp():
 	#Set gain to something
-	set_amp_gain(63)
-	#bring mute high
-	#GPIO.setup(17, GPIO.OUT, pull_up_down=GPIO.PUD_UP)
+	set_amp_gain(volume)
 	#bring shutdown high
-	#GPIO.setup(27, GPIO.OUT, pull_up_down=GPIO.PUD_UP)
+	GPIO.setup(17, GPIO.OUT)
+	GPIO.output(17, True)
+	#bring mute high
+	GPIO.setup(27, GPIO.OUT)
+	GPIO.output(27, True)
 
 def set_amp_gain(gain):
 	if (gain < 0):
@@ -362,6 +394,7 @@ if __name__ == '__main__':
 
 	# Setup gpio 18 (pin 12) for Push-to-talk
 	GPIO.setmode(GPIO.BCM)
+	GPIO.setwarnings(False)
 	GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 	# Setup pocketsphinx voice-to-text engine
@@ -372,8 +405,13 @@ if __name__ == '__main__':
 	# Arduino code bug, clear out first command
 	send_cmd(" ")
 
+	# Open faceplate & close exwife
+	send_cmd("1\n")
+	time.sleep(1)
+	send_cmd("10 0\n")
+
 	# Jarvis coming online audio
-	play('intro_a')
+	play('trs_help')
 	say_time(short=1)
 
 	while True:

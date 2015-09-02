@@ -16,7 +16,8 @@ turn the lights on
 default
 
 unibeam
-exwife
+ex wife
+missile
 
 set lights to red
 colors

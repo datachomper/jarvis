@@ -30,7 +30,7 @@ uint32_t global_color;
 #define FLAP 3
 
 #define HELM_OPEN 600
-#define HELM_CLOSED 2000
+#define HELM_CLOSE 2200
 #define ROOF_OPEN 1600
 #define ROOF_CLOSE 1000
 #define CRADLE_OPEN 700
@@ -294,7 +294,7 @@ void loop()
 			set_pixel_color(HELM, 0);
 			servos[HELM].end = HELM_OPEN;
 		} else if (cmd == CLOSE_FACEPLATE) {
-			servos[HELM].end = HELM_CLOSED;
+			servos[HELM].end = HELM_CLOSE;
 			set_pixel_color(HELM, global_color);
 		} else if (cmd == LED_COLOR) {
 			int r = Serial.parseInt();
