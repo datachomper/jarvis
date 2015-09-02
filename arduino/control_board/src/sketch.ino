@@ -36,7 +36,7 @@ uint32_t global_color;
 #define CRADLE_OPEN 700
 #define CRADLE_CLOSE 1500
 #define FLAP_OPEN 2300
-#define FLAP_CLOSE 1200
+#define FLAP_CLOSE 800
 
 struct serv {
 	Servo servo;
@@ -172,7 +172,9 @@ void setup()
 	/* Set all pixels to default color */
 	init_pix();
 	global_color = Adafruit_NeoPixel::Color(127, 0, 0);
-	color_wipe(global_color);
+	set_pixel_color(UNI, global_color);
+	set_pixel_color(LREP, global_color);
+	set_pixel_color(RREP, global_color);
 
 	cli();
 	TCCR2A = 0;
@@ -198,6 +200,7 @@ ISR(TIMER2_COMPA_vect) {
 	static int excounter = 0;
 	static char litpixel[12] = {1,0,0,0,0,0,1,0,0,0,0,0};
 
+	#if 0
 	/* Update @ 1Khz/10 = 100Hz */
 	if (servocounter > 10) {
 		servocounter = 0;
@@ -228,6 +231,7 @@ ISR(TIMER2_COMPA_vect) {
 	} else {
 		servocounter++;
 	}
+	#endif
 
 	/* exwife light chase */
 	if (excounter > 100) {
@@ -280,6 +284,54 @@ void strobe() {
 	}
 }
 
+void open_faceplate() {
+	set_pixel_color(HELM, 0);
+	servos[HELM].servo.attach(servos[HELM].pin);
+	servos[HELM].servo.writeMicroseconds(HELM_OPEN);
+	delay(1000);
+	servos[HELM].servo.detach();
+}
+
+void close_faceplate() {
+	servos[HELM].servo.attach(servos[HELM].pin);
+	servos[HELM].servo.writeMicroseconds(HELM_CLOSE);
+	delay(1000);
+	servos[HELM].servo.detach();
+	set_pixel_color(HELM, global_color);
+}
+
+void open_exwife() {
+	servos[FLAP].servo.attach(servos[FLAP].pin);
+	servos[FLAP].servo.writeMicroseconds(FLAP_OPEN);
+
+	servos[ROOF].servo.attach(servos[ROOF].pin);
+	servos[ROOF].servo.writeMicroseconds(ROOF_OPEN);
+
+	servos[CRADLE].servo.attach(servos[CRADLE].pin);
+	servos[CRADLE].servo.writeMicroseconds(CRADLE_OPEN);
+
+	delay(500);
+	servos[FLAP].servo.detach();
+	servos[ROOF].servo.detach();
+	servos[CRADLE].servo.detach();
+}
+
+void close_exwife() {
+	servos[CRADLE].servo.attach(servos[CRADLE].pin);
+	servos[CRADLE].servo.writeMicroseconds(CRADLE_CLOSE);
+
+	servos[ROOF].servo.attach(servos[ROOF].pin);
+	servos[ROOF].servo.writeMicroseconds(ROOF_CLOSE);
+
+	servos[FLAP].servo.attach(servos[FLAP].pin);
+	servos[FLAP].servo.writeMicroseconds(FLAP_CLOSE);
+
+	delay(500);
+	servos[CRADLE].servo.detach();
+	servos[ROOF].servo.detach();
+	servos[FLAP].servo.detach();
+}
+
 void loop()
 {
 	static unsigned long timeout = 0;
@@ -291,11 +343,9 @@ void loop()
 		Serial.println(cmd);
 
 		if (cmd == OPEN_FACEPLATE) {
-			set_pixel_color(HELM, 0);
-			servos[HELM].end = HELM_OPEN;
+			open_faceplate();
 		} else if (cmd == CLOSE_FACEPLATE) {
-			servos[HELM].end = HELM_CLOSE;
-			set_pixel_color(HELM, global_color);
+			close_faceplate();
 		} else if (cmd == LED_COLOR) {
 			int r = Serial.parseInt();
 			int g = Serial.parseInt();
@@ -337,19 +387,9 @@ void loop()
 			int state = Serial.parseInt();
 	
 			if (state == 1) {
-				Serial.println("open exwife");
-				servos[FLAP].end = FLAP_OPEN;
-				delay(200);
-				servos[ROOF].end = ROOF_OPEN;
-				delay(500);
-				servos[CRADLE].end = CRADLE_OPEN;
+				open_exwife();
 			} else if (state == 0){
-				Serial.println("close exwife");
-				servos[CRADLE].end = CRADLE_CLOSE;
-				delay(500);
-				servos[ROOF].end = ROOF_CLOSE;
-				delay(300);
-				servos[FLAP].end = FLAP_CLOSE;
+				close_exwife();
 			}
 		}
 	}
