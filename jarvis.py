@@ -291,11 +291,14 @@ def action_tree(c):
 		confirm()
 
 	elif any(word in c for word in ['BOGEY', 'ENEMY', 'BATTLE']):
+		send_cmd("2\n")
 		send_cmd("10 1\n")
 		play('clock_alarm_snooze_1')
 
 	elif any(word in c for word in ['STAND DOWN', 'RELAX']):
 		send_cmd("10 0\n")
+		send_cmd("1\n")
+		confirm()
 
 	elif 'UNMUTE' in c:
 		# This could hit the mute pin but it's acting strange
