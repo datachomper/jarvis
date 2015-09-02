@@ -22,6 +22,7 @@ Adafruit_NeoPixel pix[NUM_PIX];
 #define INTERVAL 50
 #define STROBESPEED 250
 uint32_t global_color;
+int exwife_is_up;
 
 #define NUM_SERVOS 4
 // HELM=0 defined by pixels above
@@ -98,17 +99,19 @@ void color_wipe(uint32_t c) {
 	}
 }
 
+void clear_pixels(int a) {
+	Adafruit_NeoPixel *p = &pix[a];
+	p->clear();
+	p->show();
+}
+
 void set_pixel_color(int a, uint32_t c) {
 	Adafruit_NeoPixel *p = &pix[a];
 
 	for (int j = 0; j < p->numPixels(); j++) {
 		p->setPixelColor(j, c);
 	}
-
-	if ((a == EX) && exwife_is_closed())
-		p->clear();
-	else
-		p->show();
+	p->show();
 }
 
 void set_all_pixel_bright(int val) {
@@ -155,6 +158,7 @@ void setup()
 	delay(500);
 	servos[FLAP].servo.writeMicroseconds(FLAP_CLOSE);
 	servos[ROOF].servo.writeMicroseconds(ROOF_CLOSE);
+	exwife_is_up = 0;
 	delay(500);
 
 	/* Record final servo positions */
@@ -200,44 +204,12 @@ ISR(TIMER2_COMPA_vect) {
 	static int excounter = 0;
 	static char litpixel[12] = {1,0,0,0,0,0,1,0,0,0,0,0};
 
-	#if 0
-	/* Update @ 1Khz/10 = 100Hz */
-	if (servocounter > 10) {
-		servocounter = 0;
-
-		for (int i = 0; i < 4; i++) {
-			struct serv *s = &servos[i];
-
-			if (s->cur != s->end) {
-				if (!s->servo.attached())
-					s->servo.attach(s->pin);
-
-				if (s->end > s->cur) {
-					s->cur += s->speed;
-					if (s->cur > s->end)
-						s->cur = s->end;
-				} else {
-					s->cur -= s->speed;
-					if (s->cur < s->end)
-						s->cur = s->end;
-				}
-
-				s->servo.writeMicroseconds(s->cur);
-			} else if (s->servo.attached()) {
-				/* Detach servo once it reaches final position */
-				s->servo.detach();
-			}
-		}
-	} else {
-		servocounter++;
-	}
-	#endif
-
 	/* exwife light chase */
-	if (excounter > 100) {
-		char tmp[12] = {0};
-		Adafruit_NeoPixel *p = &pix[EX];
-		if (!exwife_is_closed()) {
+	if (exwife_is_up) {
+		if (excounter > 100) {
+			char tmp[12] = {0};
+			Adafruit_NeoPixel *p = &pix[EX];
+
 			excounter = 0;
 			for (int i = 0; i < 12; i++) {
 				if (litpixel[i])
@@ -261,11 +233,8 @@ ISR(TIMER2_COMPA_vect) {
 				litpixel[i] = tmp[i];
 			}
 		} else {
-			p->clear();
-			p->show();
+			excounter++;
 		}
-	} else {
-		excounter++;
 	}
 }
 
@@ -285,7 +254,7 @@ void strobe() {
 }
 
 void open_faceplate() {
-	set_pixel_color(HELM, 0);
+	clear_pixels(HELM);
 	servos[HELM].servo.attach(servos[HELM].pin);
 	servos[HELM].servo.writeMicroseconds(HELM_OPEN);
 	delay(1000);
@@ -314,9 +283,11 @@ void open_exwife() {
 	servos[FLAP].servo.detach();
 	servos[ROOF].servo.detach();
 	servos[CRADLE].servo.detach();
+	exwife_is_up = 1;
 }
 
 void close_exwife() {
+	exwife_is_up = 0;
 	servos[CRADLE].servo.attach(servos[CRADLE].pin);
 	servos[CRADLE].servo.writeMicroseconds(CRADLE_CLOSE);
 
@@ -330,6 +301,7 @@ void close_exwife() {
 	servos[CRADLE].servo.detach();
 	servos[ROOF].servo.detach();
 	servos[FLAP].servo.detach();
+	clear_pixels(EX);
 }
 
 void loop()

@@ -10,6 +10,7 @@ import wave
 import serial
 import smbus
 import os
+import subprocess
 
 bus = smbus.SMBus(1)
 
@@ -29,8 +30,8 @@ def scale(value, leftmin, leftmax, rightmin, rightmax):
 
 def decoder_init():
 	hmdir = '/usr/local/share/pocketsphinx/model/en-us/en-us'
-	dictd = '/home/pi/jarvis/sphinx_kb/jarvis_v4.dic'
-	lmdir = '/home/pi/jarvis/sphinx_kb/jarvis_v4.lm'
+	dictd = '/home/pi/jarvis/sphinx_kb/jarvis_v6.dic'
+	lmdir = '/home/pi/jarvis/sphinx_kb/jarvis_v6.lm'
 
 	# Create a decoder with certain model
 	config = Decoder.default_config()
@@ -220,6 +221,11 @@ def set_lights(c):
 		else:
 			unknown()
 
+def start_music(song)
+	global music = subprocess.Popen(['mplayer', '-slave', '-quiet', song])
+
+def stop_music()
+	music.kill()
 
 def wordtoi(c):
 	if 'ZERO' in c:
@@ -258,16 +264,6 @@ def action_tree(c):
 			'listening_on_5', 'listening_on_6', 'listening_on_7']
 		play(random.choice(x))
 	
-	# Open faceplate
-	elif any(word in c for word in ['OPEN', 'UP']):
-		send_cmd("1\n")
-		confirm()
-
-	# Close faceplate
-	elif any(word in c for word in ['CLOSE', 'DOWN']):
-		send_cmd("2\n")
-		confirm()
-
 	# What time is it
 	elif 'TIME' in c:
 		say_time()
@@ -283,7 +279,7 @@ def action_tree(c):
 		send_cmd("5 1\n")
 		confirm()
 
-	elif 'EXWIFE' in c:
+	elif 'MISSILE' in c:
 		if any(word in c for word in ['OPEN', 'ACTIVATE']):
 			send_cmd("10 1\n")
 		else:
@@ -295,7 +291,7 @@ def action_tree(c):
 		send_cmd("10 1\n")
 		play('clock_alarm_snooze_1')
 
-	elif any(word in c for word in ['STAND DOWN', 'RELAX']):
+	elif any(word in c for word in ['RELAX']):
 		send_cmd("10 0\n")
 		send_cmd("1\n")
 		confirm()
@@ -343,14 +339,12 @@ def action_tree(c):
 		play('clock_late_1')
 		# confirm_0, confirm_10, confirm_9
 
-	elif any(word in c for word in ['SHUTDOWN', 'POWER OFF']):
+	elif any(word in c for word in ['POWER OFF']):
 		play('sleep_2')
-		set_amp_gain(0)
 		os.system('shutdown now -h')
 
 	elif 'REBOOT' in c:
 		play('sleep_2')
-		set_amp_gain(0)
 		os.system('reboot')
 
 	elif 'HOT' in c:
@@ -364,6 +358,27 @@ def action_tree(c):
 			confirm()
 		else:
 			unknown()
+
+	elif 'PLAY' in c:
+		if 'IRON' in c:
+			start_music('bad_blood_iron_man.mp3')
+		elif 'GAME' in c:
+			start_music('dirt_off_your_game_of_thrones.mp3')
+		else
+			unknown()
+
+	elif 'STOP' in c:
+		stop_music()
+
+	# Open faceplate
+	elif any(word in c for word in ['OPEN', 'UP']):
+		send_cmd("1\n")
+		confirm()
+
+	# Close faceplate
+	elif any(word in c for word in ['CLOSE', 'DOWN']):
+		send_cmd("2\n")
+		confirm()
 
 	# Unknown Request
 	else:
