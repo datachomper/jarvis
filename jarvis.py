@@ -221,10 +221,12 @@ def set_lights(c):
 		else:
 			unknown()
 
-def start_music(song)
-	global music = subprocess.Popen(['mplayer', '-slave', '-quiet', song])
+def start_music(song):
+	global music
+	song = 'audio/' + song
+	music = subprocess.Popen(['mplayer', '-slave', '-quiet', song])
 
-def stop_music()
+def stop_music():
 	music.kill()
 
 def wordtoi(c):
@@ -364,7 +366,7 @@ def action_tree(c):
 			start_music('bad_blood_iron_man.mp3')
 		elif 'GAME' in c:
 			start_music('dirt_off_your_game_of_thrones.mp3')
-		else
+		else:
 			unknown()
 
 	elif 'STOP' in c:
